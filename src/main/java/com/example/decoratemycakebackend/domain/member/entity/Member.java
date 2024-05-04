@@ -1,5 +1,6 @@
 package com.example.decoratemycakebackend.domain.member.entity;
 
+import com.example.decoratemycakebackend.domain.cake.entity.Cake;
 import com.example.decoratemycakebackend.domain.friend.entity.FriendRequest;
 import jakarta.persistence.*;
 import lombok.*;
@@ -53,6 +54,9 @@ public class Member implements UserDetails {
 
     @OneToMany(mappedBy = "sender")
     private List<FriendRequest> sendFriendRequests = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
+    private List<Cake> cakes = new ArrayList<>();
 
     @Override
     public String getUsername() {
