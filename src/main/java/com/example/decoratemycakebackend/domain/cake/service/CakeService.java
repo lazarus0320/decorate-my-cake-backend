@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.example.decoratemycakebackend.global.util.ValidationUtil.validateEmailMatch;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -29,12 +31,50 @@ public class CakeService {
 
     public CakeCreateResponseDto createCake(CakeCreateRequestDto request) {
 
+        // 프론트에서 보낸 email과 로그인 된 유저의 email 일치 여부 확인
         String email = SecurityUtil.getCurrentUserEmail();
+        validateEmailMatch(email, request.getEmail());
+        // 멤버 정보 DB에서 조회
+        Member member = getMember(email);
+        // 케이크 정보 생성
+        Cake cake = createCake(request, member, email);
+        // DB에 정보 저장후 멤버 정보 업데이트
+        saveCakeAndUpdateMember(cake, member);
+        // 케이크 설정 정보 생성
+        CakeCreateResponseDto.CakeSetting cakeSetting = createCakeSetting(cake);
+        // 케이크 정보 및 설정 정보 반환
+        return createCakeCreateResponseDto(cakeSetting, cake);
+    }
 
-        Member member = memberRepository.findByEmail(email)
+    public CakeViewResponseDto getCakeAndCandles(CakeViewRequestDto request) {
+        // 친구의 케이크를 조회할 수도 있으므로 로그인 한 유저의 이메일과 일치 여부 확인하지 않음
+        String email = request.getEmail();
+
+        Member member = getMember(email);
+        Cake cake = getCake(email, request.getCakeCreatedYear());
+
+        // 생일까지 남은기간 계산
+        LocalDate today = LocalDate.now();
+        LocalDate birthday = member.getBirthday();
+        LocalDate nextBirthday = getNextBirthday(today, birthday);
+
+        long daysUntilBirthday = ChronoUnit.DAYS.between(today, nextBirthday);
+        int age = nextBirthday.getYear() - birthday.getYear();
+
+        if (isBirthdayToday(daysUntilBirthday)) {
+            return getBirthdayCakeViewResponseDto(member, age, cake);
+        } else {
+            return getBeforeBirthdayCakeViewResponseDto(member, birthday, age, daysUntilBirthday, cake);
+        }
+    }
+
+    private Member getMember(String email) {
+        return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+    }
 
-        Cake cake = Cake.builder()
+    private Cake createCake(CakeCreateRequestDto request, Member member, String email) {
+        return Cake.builder()
                 .name(request.getCakeName())
                 .member(member)
                 .email(email)
@@ -44,21 +84,23 @@ public class CakeService {
                 .candleCountPermission(request.getCandleCountPermission())
                 .candles(Collections.emptyList())
                 .build();
+    }
 
-        // Cake 저장
+    private void saveCakeAndUpdateMember(Cake cake, Member member) {
         cakeRepository.save(cake);
-        // Cake 정보를 member에 매핑
         member.getCakes().add(cake);
-        // 멤버 업데이트 정보 저장
         memberRepository.save(member);
+    }
 
-        CakeCreateResponseDto.CakeSetting cakeSetting = CakeCreateResponseDto.CakeSetting.builder()
+    private CakeCreateResponseDto.CakeSetting createCakeSetting(Cake cake) {
+        return CakeCreateResponseDto.CakeSetting.builder()
                 .candleCreatePermission(cake.getCandleCreatePermission())
                 .candleViewPermission(cake.getCandleViewPermission())
                 .candleCountPermission(cake.getCandleCountPermission())
                 .build();
+    }
 
-
+    private CakeCreateResponseDto createCakeCreateResponseDto(CakeCreateResponseDto.CakeSetting cakeSetting, Cake cake) {
         return CakeCreateResponseDto.builder()
                 .setting(cakeSetting)
                 .cakeName(cake.getName())
@@ -68,100 +110,38 @@ public class CakeService {
                 .build();
     }
 
-    public CakeViewResponseDto getCakeAndCandles(CakeViewRequestDto request) {
-
-        // member 정보 불러오기
-        Member member = memberRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
-
-        // cake 정보 불러오기, 없으면 null
-        Cake cake = cakeRepository.findByEmailAndCreatedYear(member.getEmail(), request.getCakeCreatedYear())
+    private Cake getCake(String email, int cakeCreatedYear) {
+        return cakeRepository.findByEmailAndCreatedYear(email, cakeCreatedYear)
                 .orElse(null);
+    }
 
-        // 현재 날짜와 생일까지 남은 일 수 계산
-        LocalDate today = LocalDate.now();
-        LocalDate birthday = member.getBirthday();
+    private LocalDate getNextBirthday(LocalDate today, LocalDate birthday) {
         LocalDate thisYearBirthday = LocalDate.of(today.getYear(), birthday.getMonthValue(), birthday.getDayOfMonth());
+        return today.isBefore(thisYearBirthday) ? thisYearBirthday : thisYearBirthday.plusYears(1);
+    }
 
-        // 오늘 날짜가 올해의 생일 이전인 경우 올해의 생일 사용, 그렇지 않으면 내년의 생일 사용
-        LocalDate nextBirthday = today.isBefore(thisYearBirthday) ? thisYearBirthday : thisYearBirthday.plusYears(1);
+    private boolean isBirthdayToday(long daysUntilBirthday) {
+        return daysUntilBirthday == 365;
+    }
 
-        long daysUntilBirthday = ChronoUnit.DAYS.between(today, nextBirthday);
-        int age = nextBirthday.getYear() - member.getBirthday().getYear();
-        log.debug("birthday: {}", age);
-        log.debug("birthday: {}", birthday);
-        log.debug("nextBirthday: {}", nextBirthday);
-        log.debug("today: {}", today);
-        log.debug("daysUntilBirthday: {}", daysUntilBirthday);
-        // 생일 당일이 아닌 경우
-        if (daysUntilBirthday != 365) {
-            // 생일까지 30일 남게 남은 경우(케이크 생성 불가)
-            if (daysUntilBirthday > 30) {
-                return CakeViewResponseDto.builder()
-                        .nickname(member.getNickname())
-                        .birthday(birthday.toString())
-                        .message("생일까지 D-" + daysUntilBirthday + "일 남았습니다!")
-                        .build();
-            }
-            // 30일 이하로 남은 경우
-
-
-            // 케이크가 없는 경우
-            if (cake == null) {
-                return CakeViewResponseDto.builder()
-                        .nickname(member.getNickname())
-                        .birthday(birthday.toString())
-                        .message(member.getNickname() + "님의 " + age + "살 생일 케이크를 만들어 보세요!")
-                        .build();
-            }
-
-            // 케이크가 있는 경우: 케이크 공개하되, 캔들은 그림과 작성자 정보만 공개
-            List<CandleListDto> candleList = cake.getCandles().stream()
-                    .map(candle -> CandleListDto.builder()
-                            .candleName(candle.getName())
-                            .writer(candle.getWriter())
-                            .build())
-                    .collect(Collectors.toList());
-
-            CakeViewResponseDto.CakeSetting cakeSetting = CakeViewResponseDto.CakeSetting.builder()
-                    .candleCreatePermission(cake.getCandleCreatePermission())
-                    .candleViewPermission(cake.getCandleViewPermission())
-                    .candleCountPermission(cake.getCandleCountPermission())
-                    .build();
-
-            return CakeViewResponseDto.builder()
-                    .nickname(member.getNickname())
-                    .cakeName(cake.getName())
-                    .birthday(member.getBirthday().toString())
-                    .cakeCreatedYear(cake.getCreatedYear())
-                    .candleList(candleList)
-                    .setting(cakeSetting)
-                    .build();
-        }
-
-        // 생일 당일인 경우: 모든 정보 공개
-
-        // 케이크가 없는 경우
+    private CakeViewResponseDto getBirthdayCakeViewResponseDto(Member member, int age, Cake cake) {
+        // 생일 당일인데 케이크 없으면 만들도록 유도
         if (cake == null) {
             return CakeViewResponseDto.builder()
                     .nickname(member.getNickname())
-                    .birthday(birthday.toString())
-                    .message(member.getNickname() + "님의 " + age + "살 생일 케이크를 만들어 보세요!")
+                    .birthday(member.getBirthday().toString())
+                    .message(recommandToCreateCake(member, age))
                     .build();
         }
-
+        // 생일 당일에 케이크가 있으면 모든 캔들 정보 공개
         List<CandleListDto> candleList = cake.getCandles().stream()
                 .map(this::toCandleListDto)
                 .collect(Collectors.toList());
 
-        CakeViewResponseDto.CakeSetting cakeSetting = CakeViewResponseDto.CakeSetting.builder()
-                .candleCreatePermission(cake.getCandleCreatePermission())
-                .candleViewPermission(cake.getCandleViewPermission())
-                .candleCountPermission(cake.getCandleCountPermission())
-                .build();
+        CakeViewResponseDto.CakeSetting cakeSetting = createCakeViewResponseDtoCakeSetting(cake);
 
         return CakeViewResponseDto.builder()
-                .message(member.getNickname() + "님의 " + age + "살 생일을 축하합니다!!")
+                .message(getBirthdayMessage(member, age))
                 .nickname(member.getNickname())
                 .cakeName(cake.getName())
                 .birthday(member.getBirthday().toString())
@@ -169,6 +149,64 @@ public class CakeService {
                 .candleList(candleList)
                 .setting(cakeSetting)
                 .build();
+    }
+
+    private CakeViewResponseDto getBeforeBirthdayCakeViewResponseDto(Member member, LocalDate birthday, int age, long daysUntilBirthday, Cake cake) {
+        // D-Day가 30일보다 많이 남은경우
+        if (daysUntilBirthday > 30) {
+            return CakeViewResponseDto.builder()
+                    .nickname(member.getNickname())
+                    .birthday(birthday.toString())
+                    .message(getDDayMessage(daysUntilBirthday))
+                    .build();
+        }
+        // D-Day가 30일 이하로 남은 경우
+        // 케이크 안 만들었다면 케이크 만들도록 유도
+        if (cake == null) {
+            return CakeViewResponseDto.builder()
+                    .nickname(member.getNickname())
+                    .birthday(birthday.toString())
+                    .message(recommandToCreateCake(member, age))
+                    .build();
+        }
+        // 케이크 만들었다면 캔들 정보 일부만 공개
+        List<CandleListDto> candleList = cake.getCandles().stream()
+                .map(candle -> CandleListDto.builder()
+                        .candleName(candle.getName())
+                        .writer(candle.getWriter())
+                        .build())
+                .collect(Collectors.toList());
+
+        CakeViewResponseDto.CakeSetting cakeSetting = createCakeViewResponseDtoCakeSetting(cake);
+
+        return CakeViewResponseDto.builder()
+                .nickname(member.getNickname())
+                .cakeName(cake.getName())
+                .birthday(member.getBirthday().toString())
+                .cakeCreatedYear(cake.getCreatedYear())
+                .candleList(candleList)
+                .setting(cakeSetting)
+                .build();
+    }
+
+    private CakeViewResponseDto.CakeSetting createCakeViewResponseDtoCakeSetting(Cake cake) {
+        return CakeViewResponseDto.CakeSetting.builder()
+                .candleCreatePermission(cake.getCandleCreatePermission())
+                .candleViewPermission(cake.getCandleViewPermission())
+                .candleCountPermission(cake.getCandleCountPermission())
+                .build();
+    }
+
+    private String recommandToCreateCake(Member member, int age) {
+        return member.getNickname() + "님의 " + age + "살 생일 케이크를 만들어 보세요!";
+    }
+
+    private String getBirthdayMessage(Member member, int age) {
+        return member.getNickname() + "님의 " + age + "살 생일을 축하합니다!!";
+    }
+
+    private String getDDayMessage(long daysUntilBirthday) {
+        return "생일까지 D-" + daysUntilBirthday + "일 남았습니다!";
     }
 
     private CandleListDto toCandleListDto(Candle candle) {
