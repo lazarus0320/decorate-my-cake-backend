@@ -145,4 +145,10 @@ public class FriendRequestService {
         friendRequestRepository.save(deletedRequest);
         log.info("Friendship deleted between {} and {}", currentMember.getEmail(), friendMember.getEmail());
     }
+
+    public boolean isFriend(Member currentMember, Member someone) {
+        FriendRequest friendRequest = friendRequestRepository.findBySenderAndReceiverAndStatus(someone, currentMember, FriendRequestStatus.ACCEPTED)
+                .orElse(null);
+        return friendRequest != null;
+    }
 }

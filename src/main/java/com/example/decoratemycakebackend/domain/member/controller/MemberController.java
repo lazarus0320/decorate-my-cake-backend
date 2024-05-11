@@ -1,4 +1,4 @@
-package com.example.decoratemycakebackend.domain.member.controler;
+package com.example.decoratemycakebackend.domain.member.controller;
 
 import com.example.decoratemycakebackend.domain.member.dto.LogInDto;
 import com.example.decoratemycakebackend.domain.member.dto.MemberDto;
@@ -35,7 +35,7 @@ public class MemberController {
             @ApiResponse(responseCode = "404", description = "사용자 없음")
     })
     @PostMapping("/login")
-    public ResponseEntity<ResponseDto<JwtToken>> logIn(@Valid @RequestBody LogInDto logInDto) {
+    public ResponseEntity<ResponseDto<JwtToken>> logIn(LogInDto logInDto) {
         String email = logInDto.getEmail();
         String password = logInDto.getPassword();
 

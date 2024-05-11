@@ -1,5 +1,7 @@
 package com.example.decoratemycakebackend.domain.member.entity;
 
+
+import com.example.decoratemycakebackend.domain.cake.entity.Cake;
 import com.example.decoratemycakebackend.domain.friend.entity.FriendRequest;
 import jakarta.persistence.*;
 import lombok.*;
@@ -41,6 +43,11 @@ public class Member implements UserDetails {
     @ElementCollection(fetch = FetchType.EAGER)
     @Builder.Default
     private List<String> roles = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
+    private List<Cake> cakes = new ArrayList<>();
+
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return this.roles.stream()
@@ -78,4 +85,5 @@ public class Member implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
 }

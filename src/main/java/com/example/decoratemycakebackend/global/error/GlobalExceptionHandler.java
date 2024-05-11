@@ -2,16 +2,17 @@ package com.example.decoratemycakebackend.global.error;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import javax.naming.AuthenticationException;
-
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
@@ -42,9 +43,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     protected ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         log.error("handleMethodArgumentNotValidException: {}", e.getMessage());
-        return ResponseEntity
-                .status(ErrorCode.VALIDATION_FAILURE.getStatus())
-                .body(new ErrorResponse(ErrorCode.VALIDATION_FAILURE));
+        String errorMessage = e.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .findFirst()
+                .orElse("유효성 검사에 실패하였습니다.");
+
+        ErrorResponse errorResponse = new ErrorResponse(ErrorCode.VALIDATION_FAILURE, errorMessage);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     // 로그인 인증에러
