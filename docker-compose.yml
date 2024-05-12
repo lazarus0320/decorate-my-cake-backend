@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  springboot-app:
+    image: astar5327/decorate-my-cake-backend
+    container_name: springboot-container
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=${DB_URL}
+      - DB_USERNAME=${DB_USERNAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+    depends_on:
+      - postgres-db
+      - redis
+    networks:
+      - my-network
+
+  postgres-db:
+    image: postgres
+    container_name: postgres-container
+    environment:
+      - POSTGRES_DB=decorate_my_cake
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+    networks:
+      - my-network
+
+  redis:
+    image: redis
+    container_name: redis-container
+    ports:
+      - "6379:6379"
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge

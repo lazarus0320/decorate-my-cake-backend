@@ -67,4 +67,8 @@ public class MemberService {
         Member savedMember = memberRepository.save(memberMapper.toMember(signUpDto, encodedPassword, roles));
         return memberMapper.toMemberDto(savedMember);
     }
+
+    public void logout(String email) {
+        jwtTokenProvider.deleteRefreshToken(email);
+    }
 }

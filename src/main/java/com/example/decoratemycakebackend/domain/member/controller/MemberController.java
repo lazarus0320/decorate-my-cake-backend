@@ -76,4 +76,16 @@ public class MemberController {
         JwtToken token = jwtTokenProvider.refreshAccessToken(refreshTokenRequest.getRefreshToken());
         return ResponseEntity.ok(new ResponseDto<>("Access Token 재발급 완료.", token));
     }
+
+    @Operation(summary = "로그아웃", description = "현재 로그인 된 계정의 로그아웃")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "로그아웃 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        String email = SecurityUtil.getCurrentUserEmail();
+        memberService.logout(email);
+        return ResponseEntity.ok(new ResponseDto<>("로그아웃 되었습니다ㅏ.", null));
+    }
 }

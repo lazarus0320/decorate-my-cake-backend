@@ -26,14 +26,16 @@ import java.util.stream.Collectors;
 @Component
 public class JwtTokenProvider {
     private final Key key;
-    //private final long accessTokenValidityInMilliseconds = 60 * 60 * 1000L; // 1시간
-    private final long accessTokenValidityInMilliseconds = 3; // 1시간
+    private final long accessTokenValidityInMilliseconds = 60 * 60 * 1000L; // 1시간
     private final long refreshTokenValidityInMilliseconds = 14 * 24 * 60 * 60 * 1000L; // 2주
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
-    public JwtTokenProvider(@Value("${jwt.secret}") String secretKey) {
+    private final CustomUserDetailsService customUserDetailsService;
+
+    public JwtTokenProvider(@Value("${jwt.secret}") String secretKey, CustomUserDetailsService customUserDetailsService) {
+        this.customUserDetailsService = customUserDetailsService;
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
@@ -155,6 +157,7 @@ public class JwtTokenProvider {
         Date accessTokenExpireIn = new Date(now + accessTokenValidityInMilliseconds);
         String newAccessToken = Jwts.builder()
                 .setSubject(username)
+                .claim("auth", getUserAuthorities(username))
                 .setExpiration(accessTokenExpireIn)
                 .signWith(key)
                 .compact();
@@ -164,6 +167,13 @@ public class JwtTokenProvider {
                 .accessToken(newAccessToken)
                 .refreshToken(savedRefreshToken)
                 .build();
+    }
+
+    private String getUserAuthorities(String username) {
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+        return userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
     }
 
     private Claims parseClaims(String accessToken) {
@@ -176,5 +186,10 @@ public class JwtTokenProvider {
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         }
+    }
+
+    // Redis에 저장된 RefreshToken을 삭제
+    public void deleteRefreshToken(String username) {
+        redisTemplate.delete(username);
     }
 }

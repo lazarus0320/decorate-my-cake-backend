@@ -23,6 +23,22 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         // 1. Request Header에서 JWT 토큰 추출
         String token = resolveToken((HttpServletRequest) request);
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        String requestURI = httpRequest.getRequestURI();
+
+        // 로그아웃 요청일 경우 redis에서 refreshToken 제거
+        if (requestURI.equals("/member/logout")) {
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                String username = jwtTokenProvider.getAuthentication(token).getName();
+                jwtTokenProvider.deleteRefreshToken(username);
+                ((HttpServletResponse) response).setStatus(HttpServletResponse.SC_OK);
+            } else {
+                // 토큰이 없거나 유효하지 않은 경우 에러 처리
+                ((HttpServletResponse) response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            }
+
+            return;
+        }
 
         try {
             // 2. validateToken으로 토큰 유효성 검사
@@ -52,4 +68,6 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
         }
         return null;
     }
+
+
 }
