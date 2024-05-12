@@ -88,6 +88,12 @@ public class CakeService {
         // 멤버 정보 DB에서 조회
         Member member = getMember(email);
 
+        // 이미 해당 년도에 생성한 케이크가 있는지 확인
+        cakeRepository.findByEmailAndCreatedYear(email, request.getCreatedYear())
+                .ifPresent(cake -> {
+                    throw new CustomException(ErrorCode.ALREADY_CREATED_CAKE);
+                });
+
         // 생일까지 남은기간 계산
         LocalDate today = LocalDate.now();
         LocalDate birthday = member.getBirthday();

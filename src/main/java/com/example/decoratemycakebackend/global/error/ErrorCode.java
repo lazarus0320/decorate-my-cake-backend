@@ -42,6 +42,7 @@ public enum ErrorCode {
     CANDLE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당하는 캔들을 찾을 수 없습니다."),
     FORBIDDEN_CREATE_CAKE(HttpStatus.OK, "D-30일부터 케이크를 생성할 수 있습니다."),
     ALREADY_RECEIVED_REQUEST(HttpStatus.OK, "이미 해당 회원으로부터 받은 요청이 있습니다."),
+    ALREADY_CREATED_CAKE(HttpStatus.OK, "이미 해당 년도의 케이크가 존재합니다."),
     FRIEND_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "친구 요청을 찾을 수 없습니다.");
 
 
