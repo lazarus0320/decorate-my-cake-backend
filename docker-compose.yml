@@ -11,8 +11,8 @@ services:
       - DB_USERNAME=${DB_USERNAME}
       - JWT_SECRET=${JWT_SECRET}
       - DB_PASSWORD=${DB_PASSWORD}
-      - SPRING_REDIS_HOST=redis
-      - SPRING_REDIS_PORT=6379
+      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
+      - SPRING_REDIS_PORT=6379${SPRING_REDIS_PORT}
     depends_on:
       - postgres-db
       - redis
@@ -23,9 +23,9 @@ services:
     image: postgres
     container_name: postgres-container
     environment:
-      - POSTGRES_DB=decorate_my_cake
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=1234
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
       - my-network
 
