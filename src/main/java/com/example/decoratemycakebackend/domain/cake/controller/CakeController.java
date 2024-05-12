@@ -64,7 +64,8 @@ public class CakeController {
         return ResponseEntity.ok(new ResponseDto<>("케이크 및 캔들 열람이 완료되었습니다.", cakeService.getCakeAndCandles(request)));
     }
 
-    @Operation(summary = "친구의 당해 케이크와 하위 캔들 정보 열람", description = "친구의 당해 년도 케이크에 대한 정보, 설정, 캔들에 대한 정보 열람 가능")
+    @Operation(summary = "친구의 당해 케이크와 하위 캔들 정보 열람", description = "친구의 당해 년도 케이크에 대한 정보, 설정, 캔들에 대한 정보 열람 가능<br>" +
+            "친구가 케이크 캔들 열람을 비공개했을시(ONLY_ME), candleCount가 -1로 표시됨")
     @GetMapping("/friends/view/{friendEmail}")
     public ResponseEntity<ResponseDto<?>> getCakeForFriend(@PathVariable String friendEmail) {
         return ResponseEntity.ok(new ResponseDto<>("친구의 케이크 및 캔들 열람이 완료되었습니다.", friendCakeService.getCakeFromSomeone(friendEmail)));

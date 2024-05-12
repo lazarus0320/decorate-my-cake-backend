@@ -29,12 +29,19 @@ public class FriendRequestService {
 
     // 친구 요청 보내기
     public void sendFriendRequest(FriendRequestDto friendRequestDto) {
+
         // 두 계정의 유효성 확인
         Member sender = memberRepository.findByEmail(SecurityUtil.getCurrentUserEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         Member receiver = memberRepository.findByEmail(friendRequestDto.getReceiverEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+
+        // 기존에 수신자가 발신자에게 먼저 보낸 요청이 있는지 확인
+        Optional<FriendRequest> existingReceiverRequest = friendRequestRepository.findBySenderAndReceiver(receiver, sender);
+        if (existingReceiverRequest.isPresent()) {
+            throw new CustomException(ErrorCode.ALREADY_RECEIVED_REQUEST);
+        }
 
         // 기존 요청 확인
         Optional<FriendRequest> existingRequest = friendRequestRepository.findBySenderAndReceiver(sender, receiver);
@@ -146,9 +153,14 @@ public class FriendRequestService {
         log.info("Friendship deleted between {} and {}", currentMember.getEmail(), friendMember.getEmail());
     }
 
+    // 친구 관계 양방향으로 확인하고 그래도 없으면 false 반환
     public boolean isFriend(Member currentMember, Member someone) {
-        FriendRequest friendRequest = friendRequestRepository.findBySenderAndReceiverAndStatus(someone, currentMember, FriendRequestStatus.ACCEPTED)
-                .orElse(null);
-        return friendRequest != null;
+        Optional<FriendRequest> friendRequest = friendRequestRepository.findBySenderAndReceiverAndStatus(someone, currentMember, FriendRequestStatus.ACCEPTED);
+
+        if (!friendRequest.isPresent()) {
+            friendRequest = friendRequestRepository.findBySenderAndReceiverAndStatus(currentMember, someone, FriendRequestStatus.ACCEPTED);
+        }
+
+        return friendRequest.isPresent();
     }
 }
