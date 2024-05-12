@@ -39,6 +39,8 @@ public enum ErrorCode {
     DUPLICATE_FRIEND_REQUEST(HttpStatus.CONFLICT, "이미 친구 요청을 보낸 상태입니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당하는 회원을 찾을 수 없습니다."),
     CAKE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당하는 케이크를 찾을 수 없습니다."),
+    ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "JWT ACCESS 토큰이 만료되었습니다. 토큰을 새로 발급받으세요."),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "JWT REFRESH 토큰이 만료되었습니다. 다시 로그인하세요."),
     CANDLE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당하는 캔들을 찾을 수 없습니다."),
     FORBIDDEN_CREATE_CAKE(HttpStatus.OK, "D-30일부터 케이크를 생성할 수 있습니다."),
     ALREADY_RECEIVED_REQUEST(HttpStatus.OK, "이미 해당 회원으로부터 받은 요청이 있습니다."),
