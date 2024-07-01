@@ -44,6 +44,7 @@ public class CakeViewResponseDto {
 
         return CakeViewResponseDto.builder()
                 .message(message)
+                .cakeUrl(cake.getCakeUrl())
                 .nickname(member.getNickname())
                 .cakeName(cake.getCakeName())
                 .birthday(member.getBirthday().toString())
