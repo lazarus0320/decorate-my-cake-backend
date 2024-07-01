@@ -89,4 +89,8 @@ public class Member implements UserDetails {
         this.profileImg = profileImg;
     }
 
+    public void changeNickname(String newNickname) {
+        this.nickname = newNickname;
+    }
+
 }

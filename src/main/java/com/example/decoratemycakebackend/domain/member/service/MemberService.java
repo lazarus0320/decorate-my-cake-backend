@@ -1,5 +1,6 @@
 package com.example.decoratemycakebackend.domain.member.service;
 
+import com.example.decoratemycakebackend.domain.member.dto.AccountSettingsDto;
 import com.example.decoratemycakebackend.domain.member.dto.MemberDto;
 import com.example.decoratemycakebackend.domain.member.dto.SignUpDto;
 import com.example.decoratemycakebackend.domain.member.entity.Member;
@@ -78,9 +79,7 @@ public class MemberService {
     }
 
     public String uploadProfileImg(MultipartFile file) throws IOException {
-        String email = SecurityUtil.getCurrentUserEmail();
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        Member member = getCurrentMember();
 
         String imageUrl = s3Service.uploadProfileImg(file);
 
@@ -91,10 +90,26 @@ public class MemberService {
     }
 
     public String getProfileImgUrl() {
-        String email = SecurityUtil.getCurrentUserEmail();
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        Member member = getCurrentMember();
 
         return member.getProfileImg();
+    }
+
+    public void updateNickname(String newNickname) {
+        Member member = getCurrentMember();
+
+        member.changeNickname(newNickname); // 엔티티 메서드를 통해 닉네임 변경
+        memberRepository.save(member); // 변경된 내용을 저장
+    }
+
+    private Member getCurrentMember() {
+        String email = SecurityUtil.getCurrentUserEmail();
+        return memberRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+    }
+
+    public AccountSettingsDto getAccountSettings() {
+        Member member = getCurrentMember();
+        return new AccountSettingsDto(member.getNickname(), member.getProfileImg());
     }
 }

@@ -1,9 +1,6 @@
 package com.example.decoratemycakebackend.domain.member.controler;
 
-import com.example.decoratemycakebackend.domain.member.dto.LogInDto;
-import com.example.decoratemycakebackend.domain.member.dto.MemberDto;
-import com.example.decoratemycakebackend.domain.member.dto.RefreshTokenRequest;
-import com.example.decoratemycakebackend.domain.member.dto.SignUpDto;
+import com.example.decoratemycakebackend.domain.member.dto.*;
 import com.example.decoratemycakebackend.domain.member.service.MemberService;
 import com.example.decoratemycakebackend.global.auth.JwtToken;
 import com.example.decoratemycakebackend.global.auth.JwtTokenProvider;
@@ -104,5 +101,19 @@ public class MemberController {
     public ResponseEntity<ResponseDto<?>> getProfileImageUrl() {
         String imageUrl = memberService.getProfileImgUrl();
         return ResponseEntity.ok(new ResponseDto<>("프로필 이미지 URL 조회가 완료되었습니다.", imageUrl));
+    }
+
+    @Operation(summary = "닉네임 변경", description = "현재 로그인한 사용자의 닉네임을 변경합니다.")
+    @PutMapping("/nickname")
+    public ResponseEntity<ResponseDto<?>> updateNickname(@RequestParam("nickname") String newNickname) {
+        memberService.updateNickname(newNickname);
+        return ResponseEntity.ok(new ResponseDto<>("닉네임 변경이 완료되었습니다.", null));
+    }
+
+    @Operation(summary = "계정 설정 조회", description = "로그인한 사용자의 닉네임과 프로필 이미지 URL을 반환합니다.")
+    @GetMapping("/settings")
+    public ResponseEntity<ResponseDto<?>> getAccountSettings() {
+        AccountSettingsDto accountSettings = memberService.getAccountSettings();
+        return ResponseEntity.ok(new ResponseDto<>("계정 설정 조회가 완료되었습니다.", accountSettings));
     }
 }
