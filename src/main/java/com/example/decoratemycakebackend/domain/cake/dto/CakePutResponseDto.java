@@ -13,6 +13,7 @@ import lombok.*;
 @Builder
 public class CakePutResponseDto {
     private CakeName cakeName;
+    private String cakeUrl;
     private CandleCreatePermission candleCreatePermission;
     private CandleViewPermission candleViewPermission;
     private CandleCountPermission candleCountPermission;

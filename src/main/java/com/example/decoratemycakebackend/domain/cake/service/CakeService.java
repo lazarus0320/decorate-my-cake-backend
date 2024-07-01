@@ -49,13 +49,17 @@ public class CakeService {
         Cake cake = cakeRepository.findByEmailAndCreatedYear(email, request.getCreatedYear())
                 .orElseThrow(() -> new CustomException(ErrorCode.CAKE_NOT_FOUND));
 
+        // S3로부터 케이크 이미지 URL 가져오기
+        String imageUrl = s3Service.getImageUrl(String.valueOf(request.getCakeName()));
+
         // 권한 필드 업데이트
-        cake.updatePermissions(request);
+        cake.updatePermissions(request, imageUrl);
 
         Cake updatedCake = cakeRepository.save(cake);
 
         return CakePutResponseDto.builder()
                 .cakeName(updatedCake.getCakeName())
+                .cakeUrl(imageUrl)
                 .candleCreatePermission(updatedCake.getCandleCreatePermission())
                 .candleViewPermission(updatedCake.getCandleViewPermission())
                 .candleCountPermission(updatedCake.getCandleCountPermission())

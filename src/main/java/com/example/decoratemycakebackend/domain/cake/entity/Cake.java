@@ -44,8 +44,9 @@ public class Cake extends BaseEntity {
     @JoinColumn(name = "member_id")
     private Member member;
 
-    public void updatePermissions(CakePutRequestDto request) {
+    public void updatePermissions(CakePutRequestDto request, String imageUrl) {
         this.cakeName = request.getCakeName();
+        this.cakeUrl = imageUrl;
         this.candleCreatePermission = request.getCandleCreatePermission();
         this.candleViewPermission = request.getCandleViewPermission();
         this.candleCountPermission = request.getCandleCountPermission();
